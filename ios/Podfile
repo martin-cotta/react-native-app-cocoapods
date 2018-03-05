@@ -1,0 +1,51 @@
+platform :ios, '11.0'
+target 'ReactNativeApp' do
+  use_frameworks!
+  pod 'React', :path => '../node_modules/react-native', :subspecs => [
+    'Core',
+    'CxxBridge',
+    'DevSupport',   # Include this to enable In-App Devmenu if RN >= 0.43
+    'RCTWebSocket', # needed for debugging
+    'ART',
+    'RCTAnimation',
+    'RCTImage',
+    'RCTNetwork',
+    'RCTPushNotification',
+    'RCTText',
+    'RCTLinkingIOS',
+    'RCTActionSheet',
+    'RCTBlob',
+    'RCTGeolocation',
+    'RCTSettings',
+    'RCTVibration'
+  ]
+  pod "yoga", :path => '../node_modules/react-native/ReactCommon/yoga'
+  # Third party deps podspec link
+  pod 'DoubleConversion', :podspec => '../node_modules/react-native/third-party-podspecs'
+  pod 'GLog', :podspec => '../node_modules/react-native/third-party-podspecs'
+  pod 'Folly', :podspec => '../node_modules/react-native/third-party-podspecs'
+
+  target 'ReactNativeAppTests' do
+    inherit! :search_paths
+  end
+
+end
+
+post_install do |installer|
+
+  puts 'Patching React Native'
+  `sed -i '' 's/(^)())block/(^)(void))block/' ../node_modules/react-native/Libraries/Image/RCTImageStoreManager.h`
+
+  # https://github.com/facebook/react-native/issues/13198
+  `sed -i '' 's|<RCTAnimation/RCTValueAnimatedNode.h>|"RCTValueAnimatedNode.h"|' ../node_modules/react-native/Libraries/NativeAnimation/RCTNativeAnimatedNodesManager.h`
+
+  # https://github.com/facebook/react-native/issues/16039
+  `sed -i '' 's|fishhook/fishhook.h|React/fishhook.h|' ../node_modules/react-native/Libraries/WebSocket/RCTReconnectingWebSocket.m`
+
+  # https://github.com/facebook/yoga/issues/711
+  # https://github.com/facebook/react-native/pull/17764
+  `sed -i '' '/Utils.h/d' "./Pods/Target Support Files/yoga/yoga-umbrella.h"`
+  `sed -i '' '/YGNode.h/d' "./Pods/Target Support Files/yoga/yoga-umbrella.h"`
+  `sed -i '' '/YGNodePrint.h/d' "./Pods/Target Support Files/yoga/yoga-umbrella.h"`
+  `sed -i '' '/Yoga-internal.h/d' "./Pods/Target Support Files/yoga/yoga-umbrella.h"`
+end
