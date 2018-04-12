@@ -24,7 +24,7 @@ target 'ReactNativeApp' do
   pod "yoga", :path => '../node_modules/react-native/ReactCommon/yoga'
   # Third party deps podspec link
   pod 'DoubleConversion', :podspec => '../node_modules/react-native/third-party-podspecs'
-  pod 'GLog', :podspec => '../node_modules/react-native/third-party-podspecs'
+  pod 'glog', :podspec => '../node_modules/react-native/third-party-podspecs'
   pod 'Folly', :podspec => '../node_modules/react-native/third-party-podspecs'
 
   target 'ReactNativeAppTests' do
@@ -33,8 +33,27 @@ target 'ReactNativeApp' do
 
 end
 
-post_install do |installer|
+def fix_cplusplus_header_compiler_error
+  # RCTSurfaceSizeMeasureMode
+  # https://github.com/facebook/yoga/issues/711
+  filepath = '../node_modules/react-native/React/Base/Surface/SurfaceHostingView/RCTSurfaceSizeMeasureMode.h'
+  contents = []
+  file = File.open(filepath, 'r')
+  file.each_line do | line |
+    contents << line
+  end
+  file.close
+  if contents[32].include? "&"
+    contents.insert(26, "#ifdef __cplusplus")
+    contents[36] = "#endif"
+    file = File.open(filepath, 'w') do |f|
+      f.puts(contents)
+    end
+  end
+end
 
+ post_install do |installer|
+  
   puts 'Patching React Native'
   `sed -i '' 's/(^)())block/(^)(void))block/' ../node_modules/react-native/Libraries/Image/RCTImageStoreManager.h`
 
@@ -50,4 +69,7 @@ post_install do |installer|
   `sed -i '' '/YGNode.h/d' "./Pods/Target Support Files/yoga/yoga-umbrella.h"`
   `sed -i '' '/YGNodePrint.h/d' "./Pods/Target Support Files/yoga/yoga-umbrella.h"`
   `sed -i '' '/Yoga-internal.h/d' "./Pods/Target Support Files/yoga/yoga-umbrella.h"`
-end
+
+  fix_cplusplus_header_compiler_error
+
+ end
